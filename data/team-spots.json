@@ -1,0 +1,80 @@
+[
+  {
+    "id": "spot-1775929681-9174",
+    "productId": "monday-2581925372",
+    "productName": "Kantarell",
+    "taxonId": 160585,
+    "scientificName": "Cantharellus cibarius",
+    "lat": 63.32539130552711,
+    "lng": 10.370433926582338,
+    "rating": 5,
+    "comment": "Veldig mye her. Plukket 17 August",
+    "reporter": "Kantarellspot Jim",
+    "createdAt": "2026-04-11T17:48:01Z"
+  },
+  {
+    "id": "spot-1775929683-2083",
+    "productId": "monday-2581925372",
+    "productName": "Kantarell",
+    "taxonId": 160585,
+    "scientificName": "Cantharellus cibarius",
+    "lat": 63.32539130552711,
+    "lng": 10.370433926582338,
+    "rating": 5,
+    "comment": "Veldig mye her. Plukket 17 August",
+    "reporter": "Kantarellspot Jim",
+    "createdAt": "2026-04-11T17:48:03Z"
+  },
+  {
+    "id": "spot-1775929684-2713",
+    "productId": "monday-2581925372",
+    "productName": "Kantarell",
+    "taxonId": 160585,
+    "scientificName": "Cantharellus cibarius",
+    "lat": 63.32539130552711,
+    "lng": 10.370433926582338,
+    "rating": 5,
+    "comment": "Veldig mye her. Plukket 17 August",
+    "reporter": "Kantarellspot Jim",
+    "createdAt": "2026-04-11T17:48:04Z"
+  },
+  {
+    "id": "spot-1775929690-9346",
+    "productId": "monday-2581925372",
+    "productName": "Kantarell",
+    "taxonId": 160585,
+    "scientificName": "Cantharellus cibarius",
+    "lat": 63.32534073305412,
+    "lng": 10.370669960975649,
+    "rating": 5,
+    "comment": "",
+    "reporter": "",
+    "createdAt": "2026-04-11T17:48:10Z"
+  },
+  {
+    "id": "spot-1775929692-1026",
+    "productId": "monday-2581925372",
+    "productName": "Kantarell",
+    "taxonId": 160585,
+    "scientificName": "Cantharellus cibarius",
+    "lat": 63.32534073305412,
+    "lng": 10.370669960975649,
+    "rating": 5,
+    "comment": "",
+    "reporter": "",
+    "createdAt": "2026-04-11T17:48:12Z"
+  },
+  {
+    "id": "spot-1775941467-2693",
+    "productId": "monday-2581925372",
+    "productName": "Kantarell",
+    "taxonId": 160585,
+    "scientificName": "Cantharellus cibarius",
+    "lat": 63.306560164400445,
+    "lng": 10.251177549362184,
+    "rating": 4,
+    "comment": "Min plass! Linnea",
+    "reporter": "Linnea",
+    "createdAt": "2026-04-11T21:04:27Z"
+  }
+]

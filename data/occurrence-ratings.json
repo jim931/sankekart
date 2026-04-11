@@ -1,0 +1,30 @@
+[
+  {
+    "sourceId": "urn:catalog:o:nxs:1275/5",
+    "rating": 5,
+    "comment": "Velidg bra felt",
+    "reporter": "Jim",
+    "createdAt": "2026-04-11T20:39:52Z"
+  },
+  {
+    "sourceId": "mfu/mfu/97891",
+    "rating": 4,
+    "comment": "test",
+    "reporter": "",
+    "createdAt": "2026-04-11T20:40:17Z"
+  },
+  {
+    "sourceId": "urn:uuid:bb98e579-5495-4d2a-9db8-bd20e8c73487",
+    "rating": 4,
+    "comment": "Mitt sted",
+    "reporter": "Jim",
+    "createdAt": "2026-04-11T20:41:50Z"
+  },
+  {
+    "sourceId": "https://www.inaturalist.org/observations/232002860",
+    "rating": 1,
+    "comment": "Ingen kantarell",
+    "reporter": "Jim",
+    "createdAt": "2026-04-11T21:02:19Z"
+  }
+]

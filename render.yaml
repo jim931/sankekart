@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: trondelag-sankeri-sankekart
+    runtime: ruby
+    plan: free
+    buildCommand: bundle install
+    startCommand: ruby server.rb
+    envVars:
+      - key: BIND_ADDRESS
+        value: 0.0.0.0
+      - key: PRODUCT_SOURCE
+        value: monday
+      - key: ARTSDATABANKEN_LIVE
+        value: "1"
+      - key: DEFAULT_COUNTIES
+        value: Trøndelag
+      - key: DEFAULT_COUNTY_IDS
+        value: "50"
+      - key: MONDAY_API_VERSION
+        value: "2025-04"
+      - key: MONDAY_PRODUCT_NAME_COLUMN_ID
+        value: dropdown_mm1jyaet
+      - key: MONDAY_SCIENTIFIC_NAME_COLUMN_ID
+        value: latinsk_navn
+      - key: MONDAY_TAXON_ID_COLUMN_ID
+        value: text_mm2a18m3
+      - key: MONDAY_CATEGORY_COLUMN_ID
+        value: ""
+      - key: MONDAY_BOARD_ID
+        sync: false
+      - key: MONDAY_API_TOKEN
+        sync: false

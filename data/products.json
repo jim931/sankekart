@@ -1,0 +1,29 @@
+[
+  {
+    "id": "steinsopp",
+    "productName": "Steinsopp",
+    "scientificName": "Boletus edulis",
+    "taxonId": 127285,
+    "category": "Sopp",
+    "sourceLabel": "Artsdatabanken klar med prøvefunn som fallback",
+    "description": "Startprodukt for kartløsningen. Denne raden kan senere synkes fra monday med TaxonId og produktnavn."
+  },
+  {
+    "id": "kantarell",
+    "productName": "Kantarell",
+    "scientificName": "Cantharellus cibarius",
+    "taxonId": 103878,
+    "category": "Sopp",
+    "sourceLabel": "Artsdatabanken klar med prøvefunn som fallback",
+    "description": "Eksempelart for å vise at løsningen håndterer flere produkter samtidig."
+  },
+  {
+    "id": "ramslok",
+    "productName": "Ramsløk",
+    "scientificName": "Allium ursinum",
+    "taxonId": 218614,
+    "category": "Vekst",
+    "sourceLabel": "Artsdatabanken klar med prøvefunn som fallback",
+    "description": "Kan brukes som eksempel på ikke-sopp dersom du vil utvide sortimentet senere."
+  }
+]

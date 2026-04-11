@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">Ryllik</title>
+  <desc id="desc">Et stilisert ikon av ryllik med hvite blomsterklaser og flikete grønne blader.</desc>
+  <defs>
+    <linearGradient id="leaf" x1="18" y1="84" x2="72" y2="30" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#395246"/>
+      <stop offset="1" stop-color="#27607a"/>
+    </linearGradient>
+    <radialGradient id="flower" cx="50%" cy="45%" r="55%">
+      <stop stop-color="#fffefb"/>
+      <stop offset="1" stop-color="#e9eee9"/>
+    </radialGradient>
+  </defs>
+  <circle cx="48" cy="48" r="44" fill="#f7f7f4"/>
+  <circle cx="48" cy="48" r="42" fill="none" stroke="#395246" stroke-opacity=".16" stroke-width="2"/>
+  <path d="M47 78 C45 63 45 49 49 35" fill="none" stroke="url(#leaf)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M48 70 C34 61 27 51 24 39" fill="none" stroke="url(#leaf)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M48 69 C62 58 70 49 73 38" fill="none" stroke="url(#leaf)" stroke-width="3" stroke-linecap="round"/>
+  <g fill="none" stroke="#395246" stroke-width="2" stroke-linecap="round" opacity=".9">
+    <path d="M31 54 l-10 2 M34 58 l-8 7 M38 62 l-4 10 M30 47 l-9 -4 M36 51 l-7 -8"/>
+    <path d="M63 52 l10 1 M60 57 l9 6 M56 62 l4 10 M66 45 l9 -5 M59 49 l7 -8"/>
+  </g>
+  <g>
+    <circle cx="49" cy="27" r="8" fill="url(#flower)" stroke="#395246" stroke-opacity=".18"/>
+    <circle cx="37" cy="31" r="7" fill="url(#flower)" stroke="#395246" stroke-opacity=".18"/>
+    <circle cx="60" cy="31" r="7" fill="url(#flower)" stroke="#395246" stroke-opacity=".18"/>
+    <circle cx="29" cy="39" r="6.5" fill="url(#flower)" stroke="#395246" stroke-opacity=".18"/>
+    <circle cx="48" cy="40" r="7.5" fill="url(#flower)" stroke="#395246" stroke-opacity=".18"/>
+    <circle cx="69" cy="39" r="6.5" fill="url(#flower)" stroke="#395246" stroke-opacity=".18"/>
+    <circle cx="38" cy="45" r="6" fill="url(#flower)" stroke="#395246" stroke-opacity=".18"/>
+    <circle cx="59" cy="45" r="6" fill="url(#flower)" stroke="#395246" stroke-opacity=".18"/>
+  </g>
+  <g fill="#834a6c" opacity=".65">
+    <circle cx="49" cy="27" r="1.8"/>
+    <circle cx="37" cy="31" r="1.5"/>
+    <circle cx="60" cy="31" r="1.5"/>
+    <circle cx="29" cy="39" r="1.4"/>
+    <circle cx="48" cy="40" r="1.6"/>
+    <circle cx="69" cy="39" r="1.4"/>
+    <circle cx="38" cy="45" r="1.2"/>
+    <circle cx="59" cy="45" r="1.2"/>
+  </g>
+</svg>

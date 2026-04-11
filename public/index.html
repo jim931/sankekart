@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trøndelag Sankeri AS - Sankekart</title>
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="app-topbar">
+      <div class="topbar-brand">
+        <img
+          src="/trondelag-sankeri-logo.jpeg"
+          alt="Trøndelag Sankeri AS"
+          class="topbar-logo"
+        />
+        <div>
+          <p class="eyebrow">Trøndelag Sankeri AS</p>
+          <h1>Sankekart</h1>
+        </div>
+      </div>
+      <div class="topbar-search">
+        <label for="product-search">Søk etter vekst</label>
+        <input
+          id="product-search"
+          class="search-input"
+          type="search"
+          placeholder="Søk f.eks. kantarell, ryllik eller skvallerkål"
+          autocomplete="off"
+        />
+      </div>
+    </header>
+
+    <div class="page-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-mark">
+            <img
+              src="/trondelag-sankeri-logo.jpeg"
+              alt="Trøndelag Sankeri AS"
+              class="brand-logo"
+            />
+            <div class="brand-copy">
+              <p class="company-name">Trøndelag Sankeri AS</p>
+              <p class="company-tag">Sankekart for råvarer, vekster og sopparter</p>
+            </div>
+          </div>
+          <p class="eyebrow">Trøndelag Sankeri AS - Sankekart</p>
+          <h1>Sankekart</h1>
+          <p class="intro">
+            Finn registrerte voksesteder og interne vurderinger for råvarer i sortimentet.
+          </p>
+        </div>
+
+        <div class="helper-text">
+          Kartet viser registrerte artsfunn. Dette er ikke en garanti for at arten
+          finnes der akkurat nå.
+        </div>
+
+        <label class="toggle-row" for="live-mode">
+          <input id="live-mode" type="checkbox" checked />
+          <span>Live-data fra Artsdatabanken</span>
+        </label>
+
+        <div class="source-filter">
+          <p class="field-label">Vis i kartet</p>
+          <label class="toggle-row" for="show-artsdatabanken">
+            <input id="show-artsdatabanken" type="checkbox" checked />
+            <span>Funn fra Artsdatabanken</span>
+          </label>
+          <label class="toggle-row" for="show-team-spots">
+            <input id="show-team-spots" type="checkbox" checked />
+            <span>Egne funn</span>
+          </label>
+          <label class="toggle-row toggle-row-strong" for="show-rated-only">
+            <input id="show-rated-only" type="checkbox" />
+            <span>Kun funn med rating</span>
+          </label>
+        </div>
+
+        <section class="legend-panel">
+          <p class="field-label">Fargeforklaring</p>
+          <div class="legend-list">
+            <div class="legend-item">
+              <span class="legend-dot legend-dot-green"></span>
+              <span>Artsfunn siste 3 år</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot legend-dot-yellow"></span>
+              <span>Artsfunn 2000-2022</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot legend-dot-pink"></span>
+              <span>Artsfunn før 2000</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot legend-dot-team"></span>
+              <span>Egne funn fra Trøndelag Sankeri</span>
+            </div>
+          </div>
+        </section>
+
+        <div id="product-list" class="product-list" aria-live="polite"></div>
+
+        <section id="detail-panel" class="detail-panel">
+          <p class="detail-kicker">Velg en vekst</p>
+          <h2>Klar for kartvisning</h2>
+          <p>
+            Klikk på en vekst i listen for å vise funn og detaljer.
+          </p>
+        </section>
+      </aside>
+
+      <main class="map-shell">
+        <div class="map-toolbar">
+          <div>
+            <p class="toolbar-label">Kartstatus</p>
+            <h2 id="map-title">Ingen vekst valgt</h2>
+          </div>
+          <div class="toolbar-brand">Trøndelag Sankeri AS</div>
+          <button id="reset-view" class="secondary-button" type="button">
+            Tilbakestill kart
+          </button>
+        </div>
+
+        <div id="status-banner" class="status-banner">
+          Laster produktoversikt...
+        </div>
+
+        <div class="map-stage">
+          <div id="map" class="map" aria-label="Kart over registrerte artsfunn"></div>
+          <div class="map-overlay-card">
+            <p class="map-overlay-kicker">Standardområde</p>
+            <strong>Trondheim sentrum</strong>
+            <span>Viser ca. 6 mil radius som start</span>
+          </div>
+          <button id="open-spot-panel" class="map-fab" type="button">
+            Registrer funn
+          </button>
+          <section id="map-spot-panel" class="map-spot-panel hidden">
+            <div class="map-spot-panel-head">
+              <div>
+                <p class="detail-kicker">Nytt team-funn</p>
+                <h3>Registrer funn i kartet</h3>
+              </div>
+              <button id="close-spot-panel" class="map-spot-close" type="button">Lukk</button>
+            </div>
+            <p class="spot-help">
+              Klikk i kartet for å velge punkt, og lagre funnet slik at alle i Trøndelag Sankeri kan se det.
+            </p>
+            <form id="map-team-spot-form" class="spot-form">
+              <label class="spot-label" for="map-spot-product">Art</label>
+              <select id="map-spot-product" name="productId" class="spot-input product-select"></select>
+
+              <label class="spot-label" for="map-spot-reporter">Navn</label>
+              <input id="map-spot-reporter" name="reporter" class="spot-input" type="text" placeholder="F.eks. Jim" />
+
+              <label class="spot-label" for="map-spot-rating">Rating</label>
+              <select id="map-spot-rating" name="rating" class="spot-input">
+                <option value="5">5 - Veldig lovende</option>
+                <option value="4">4 - Bra</option>
+                <option value="3">3 - Ok</option>
+                <option value="2">2 - Svakt</option>
+                <option value="1">1 - Ikke verdt turen</option>
+              </select>
+
+              <label class="spot-label" for="map-spot-comment">Kommentar</label>
+              <textarea id="map-spot-comment" name="comment" class="spot-textarea" placeholder="Skriv kort om mengde, kvalitet, adkomst eller sesong."></textarea>
+
+              <div class="spot-coordinates" id="map-spot-coordinates">Ingen kartposisjon valgt ennå.</div>
+              <button class="spot-submit" type="submit">Lagre team-funn</button>
+            </form>
+          </section>
+        </div>
+        <div class="map-footer">
+          <span class="footer-chip">Trøndelag Sankeri AS</span>
+          <span class="footer-text">Sankekart basert pa monday.com og Artsdatabanken</span>
+        </div>
+      </main>
+    </div>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
