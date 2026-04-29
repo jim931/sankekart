@@ -76,5 +76,149 @@
     "comment": "Min plass! Linnea",
     "reporter": "Linnea",
     "createdAt": "2026-04-11T21:04:27Z"
+  },
+  {
+    "id": "spot-1775981075-9971",
+    "productId": "monday-2581853435",
+    "productName": "Mjødurt",
+    "taxonId": 133272,
+    "scientificName": "Filipendula ulmaria",
+    "lat": 63.302904023173305,
+    "lng": 10.239898555183313,
+    "rating": 5,
+    "comment": "Fint sted ved sti.",
+    "reporter": "Jim",
+    "photos": [
+
+    ],
+    "createdAt": "2026-04-12T08:04:35Z"
+  },
+  {
+    "id": "spot-1775998970-8110",
+    "productId": "monday-2581844267",
+    "productName": "Engkarse",
+    "taxonId": 145768,
+    "scientificName": "Cardamine pratensis",
+    "lat": 63.29168528407201,
+    "lng": 10.248322581948985,
+    "rating": 3,
+    "comment": "Kommer mer og mer. Kanskje nok til 10-15 bokser.",
+    "reporter": "Jim",
+    "photos": [
+
+    ],
+    "createdAt": "2026-04-12T13:02:50Z"
+  },
+  {
+    "id": "spot-1775999044-8913",
+    "productId": "monday-2581844267",
+    "productName": "Engkarse",
+    "taxonId": 145768,
+    "scientificName": "Cardamine pratensis",
+    "lat": 63.34343506272695,
+    "lng": 10.243333651194872,
+    "rating": 5,
+    "comment": "Hele parkeringsplassen er full av engkarse. BAre pass på at det ikke er klipt.",
+    "reporter": "Jim",
+    "photos": [
+
+    ],
+    "createdAt": "2026-04-12T13:04:04Z"
+  },
+  {
+    "id": "spot-1776088692-4045",
+    "productId": "monday-2581947257",
+    "productName": "Bekkekarse",
+    "taxonId": 61104,
+    "scientificName": "Cardamina amara",
+    "lat": 63.30582204080507,
+    "lng": 10.26629780698618,
+    "rating": 5,
+    "comment": "Var bra her tidligere, langs bekk/utløp. Men de har gravd litt drenering .",
+    "reporter": "Jim",
+    "photos": [
+
+    ],
+    "createdAt": "2026-04-13T13:58:12Z"
+  },
+  {
+    "id": "spot-1776093128-2684",
+    "productId": "monday-2581925493",
+    "productName": "Rynkerose",
+    "taxonId": 63363,
+    "scientificName": "Rosa Rugosa",
+    "lat": 63.309416924751275,
+    "lng": 10.184333545321696,
+    "rating": 5,
+    "comment": "Veldig lovende! Mye roser!",
+    "reporter": "Jim",
+    "photos": [
+
+    ],
+    "createdAt": "2026-04-13T15:12:08Z"
+  },
+  {
+    "id": "spot-1776097601-7952",
+    "productId": "monday-2581947257",
+    "productName": "Bekkekarse",
+    "taxonId": 61104,
+    "scientificName": "Cardamina amara",
+    "lat": 63.27409251259721,
+    "lng": 10.308640782812077,
+    "rating": 3,
+    "comment": "Ny parkslireknespot jey",
+    "reporter": "Jim",
+    "photos": [
+
+    ],
+    "createdAt": "2026-04-13T16:26:41Z"
+  },
+  {
+    "id": "spot-1777416102-6922",
+    "productId": "monday-2581854085",
+    "productName": "Brennesle",
+    "taxonId": 63498,
+    "scientificName": "Urtica dioica",
+    "lat": 63.28519622823703,
+    "lng": 10.289095889531776,
+    "rating": 5,
+    "comment": "Bra spot som kommer tidlig. Sanker i April.",
+    "reporter": "Jim",
+    "photos": [
+
+    ],
+    "createdAt": "2026-04-28T22:41:42Z"
+  },
+  {
+    "id": "spot-1777416552-1019",
+    "productId": "monday-2581947125",
+    "productName": "Hagenøkleblom",
+    "taxonId": 135890,
+    "scientificName": "Primula elatior",
+    "lat": 63.29136200324419,
+    "lng": 10.24971290346554,
+    "rating": 5,
+    "comment": "Kommer hvert år. Stabilt",
+    "reporter": "Hagenøkleblom",
+    "photos": [
+
+    ],
+    "createdAt": "2026-04-28T22:49:12Z"
+  },
+  {
+    "id": "spot-1777416609-3771",
+    "productId": "monday-2581925435",
+    "productName": "Hegg",
+    "taxonId": 135924,
+    "scientificName": "Prunus padus",
+    "lat": 63.2883180164652,
+    "lng": 10.265109131759612,
+    "rating": 5,
+    "comment": "Mange hegg der, enkelt å sanke. Ta med stige.",
+    "reporter": "Hegg",
+    "photos": [
+
+    ],
+    "createdAt": "2026-04-28T22:50:09Z"
   }
 ]

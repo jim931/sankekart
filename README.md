@@ -67,6 +67,30 @@ Merk: På Render Free er filsystemet ikke en trygg permanent database. Egne funn
 - lar teamet registrere egne funn med rating og kommentar
 - lar teamet vurdere Artsdatabanken-funn med rating og kommentar
 - kan hente produkter fra `monday.com` når token og board er satt opp
+- har en enkel `Sankejakt`-prototype der du laster opp et bilde, får artsforslag fra NSNF-pensumet og tjener poeng/XP
+
+## Sankejakt-prototype
+
+Den nye prototypen bruker [Pensum_NVK_NSNF_2025.pdf](/Users/jim/Downloads/Pensum_NVK_NSNF_2025.pdf) som utgangspunkt for spillkatalogen i [data/nsnf-pensum-2025.json](/Users/jim/Documents/New%20project/data/nsnf-pensum-2025.json).
+
+- `POST /api/identify` analyserer ett bilde og matcher mot pensumkatalogen
+- `GET /api/game-profile` returnerer lokal spillerprogresjon
+- progresjon lagres i `data/game-profile.json`
+
+Hvis du vil aktivere ekte AI-gjenkjenning, legg inn:
+
+- `OPENAI_API_KEY`
+- valgfritt `OPENAI_MODEL` som standard er `gpt-4.1-mini`
+
+Hvis `OPENAI_API_KEY` mangler, kjører UI-en fortsatt i en tydelig demo-modus slik at spillflyten kan testes lokalt.
+
+For å bygge katalogen på nytt fra PDF-en:
+
+```bash
+/Users/jim/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 tools/build_nsnf_catalog.py
+```
+
+Skriptet leser [Pensum_NVK_NSNF_2025.pdf](/Users/jim/Downloads/Pensum_NVK_NSNF_2025.pdf) og skriver hele katalogen til [data/nsnf-pensum-2025.json](/Users/jim/Documents/New%20project/data/nsnf-pensum-2025.json).
 
 ## Monday-kobling
 

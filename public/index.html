@@ -16,25 +16,43 @@
   <body>
     <header class="app-topbar">
       <div class="topbar-brand">
-        <img
-          src="/trondelag-sankeri-logo.jpeg"
-          alt="Trøndelag Sankeri AS"
-          class="topbar-logo"
-        />
-        <div>
-          <p class="eyebrow">Trøndelag Sankeri AS</p>
-          <h1>Sankekart</h1>
+        <div class="topbar-brand-card">
+          <img
+            src="/trondelag-sankeri-logo.png"
+            alt="Trøndelag Sankeri AS"
+            class="topbar-logo"
+          />
+          <div>
+            <strong>Trøndelag Sankeri AS</strong>
+            <span>Sankekart for råvarer, vekster og sopparter</span>
+          </div>
         </div>
       </div>
-      <div class="topbar-search">
+      <form class="topbar-search" id="product-search-form">
         <label for="product-search">Søk etter vekst</label>
-        <input
-          id="product-search"
-          class="search-input"
-          type="search"
-          placeholder="Søk f.eks. kantarell, ryllik eller skvallerkål"
-          autocomplete="off"
-        />
+        <div class="search-control">
+          <input
+            id="product-search"
+            class="search-input"
+            type="search"
+            placeholder="Søk f.eks. kantarell, ryllik eller skvallerkål"
+            autocomplete="off"
+          />
+          <button id="product-search-button" class="search-button" type="submit">
+            <span>Søk</span>
+          </button>
+          <div class="topbar-active-art">
+            <span>Art</span>
+            <strong id="topbar-active-art">Ingen valgt</strong>
+          </div>
+        </div>
+        <div id="topbar-product-suggestions" class="topbar-product-suggestions" aria-live="polite"></div>
+      </form>
+      <div class="topbar-context">
+        <label class="topbar-live-toggle" for="live-mode">
+          <input id="live-mode" type="checkbox" checked />
+          <span>Live fra Artsdatabanken</span>
+        </label>
       </div>
     </header>
 
@@ -43,7 +61,7 @@
         <div class="brand-block">
           <div class="brand-mark">
             <img
-              src="/trondelag-sankeri-logo.jpeg"
+              src="/trondelag-sankeri-logo.png"
               alt="Trøndelag Sankeri AS"
               class="brand-logo"
             />
@@ -63,59 +81,62 @@
           Kartet viser registrerte artsfunn. Dette er ikke en garanti for at arten
           finnes der akkurat nå.
         </div>
+        <button id="mobile-filters-toggle" class="mobile-filters-toggle" type="button" aria-expanded="false">
+          Filter og artsliste
+        </button>
 
-        <label class="toggle-row" for="live-mode">
-          <input id="live-mode" type="checkbox" checked />
-          <span>Live-data fra Artsdatabanken</span>
-        </label>
+        <div id="mobile-filters-panel" class="mobile-filters-panel">
+          <div class="mobile-filters-head">
+            <p class="detail-kicker">Mobilvisning</p>
+            <strong>Velg art og filtre</strong>
+          </div>
 
-        <div class="source-filter">
-          <p class="field-label">Vis i kartet</p>
-          <label class="toggle-row" for="show-artsdatabanken">
-            <input id="show-artsdatabanken" type="checkbox" checked />
-            <span>Funn fra Artsdatabanken</span>
-          </label>
-          <label class="toggle-row" for="show-team-spots">
-            <input id="show-team-spots" type="checkbox" checked />
-            <span>Egne funn</span>
-          </label>
-          <label class="toggle-row toggle-row-strong" for="show-rated-only">
-            <input id="show-rated-only" type="checkbox" />
-            <span>Kun funn med rating</span>
-          </label>
-        </div>
+          <div id="product-list" class="product-list" aria-live="polite"></div>
 
-        <section class="legend-panel">
-          <p class="field-label">Fargeforklaring</p>
-          <div class="legend-list">
-            <div class="legend-item">
-              <span class="legend-dot legend-dot-green"></span>
-              <span>Artsfunn siste 3 år</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-dot legend-dot-yellow"></span>
-              <span>Artsfunn 2000-2022</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-dot legend-dot-pink"></span>
-              <span>Artsfunn før 2000</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-dot legend-dot-team"></span>
-              <span>Egne funn fra Trøndelag Sankeri</span>
+          <section id="detail-panel" class="detail-panel">
+            <p class="detail-kicker">Valgt vekst</p>
+            <h2>Klar for kartvisning</h2>
+            <p>
+              Klikk på en vekst i listen for å vise funn og detaljer.
+            </p>
+          </section>
+
+          <div class="source-filter">
+            <p class="field-label">Vis i kartet</p>
+            <label class="toggle-row" for="show-artsdatabanken">
+              <input id="show-artsdatabanken" type="checkbox" checked />
+              <span>Funn fra Artsdatabanken</span>
+            </label>
+            <label class="toggle-row" for="show-team-spots">
+              <input id="show-team-spots" type="checkbox" checked />
+              <span>Egne funn</span>
+            </label>
+            <label class="toggle-row toggle-row-strong" for="show-rated-only">
+              <input id="show-rated-only" type="checkbox" />
+              <span>Kun funn med rating</span>
+            </label>
+          </div>
+
+          <div class="location-filter">
+            <p class="field-label">Område</p>
+            <div class="filter-group">
+              <span class="filter-group-title">Fylke</span>
+              <label class="filter-chip" for="county-trondelag">
+                <input id="county-trondelag" class="county-filter" type="checkbox" value="Trøndelag" data-county-id="16,17" checked />
+                <span>Trøndelag</span>
+              </label>
+              <label class="filter-chip" for="county-more-romsdal">
+                <input id="county-more-romsdal" class="county-filter" type="checkbox" value="Møre og Romsdal" data-county-id="15" />
+                <span>Møre og Romsdal</span>
+              </label>
+              <label class="filter-chip" for="county-innlandet">
+                <input id="county-innlandet" class="county-filter" type="checkbox" value="Innlandet" data-county-id="34" />
+                <span>Innlandet</span>
+              </label>
             </div>
           </div>
-        </section>
+        </div>
 
-        <div id="product-list" class="product-list" aria-live="polite"></div>
-
-        <section id="detail-panel" class="detail-panel">
-          <p class="detail-kicker">Velg en vekst</p>
-          <h2>Klar for kartvisning</h2>
-          <p>
-            Klikk på en vekst i listen for å vise funn og detaljer.
-          </p>
-        </section>
       </aside>
 
       <main class="map-shell">
@@ -134,13 +155,20 @@
           Laster produktoversikt...
         </div>
 
+        <section class="field-actions" aria-label="Feltmodus">
+          <button id="field-register" class="field-action field-action-primary" type="button">
+            Registrer funn
+          </button>
+          <button id="field-rated-only" class="field-action" type="button">
+            Kun vurderte
+          </button>
+          <button id="field-reset" class="field-action" type="button">
+            Trondheim-område
+          </button>
+        </section>
+
         <div class="map-stage">
           <div id="map" class="map" aria-label="Kart over registrerte artsfunn"></div>
-          <div class="map-overlay-card">
-            <p class="map-overlay-kicker">Standardområde</p>
-            <strong>Trondheim sentrum</strong>
-            <span>Viser ca. 6 mil radius som start</span>
-          </div>
           <button id="open-spot-panel" class="map-fab" type="button">
             Registrer funn
           </button>
@@ -174,11 +202,39 @@
               <label class="spot-label" for="map-spot-comment">Kommentar</label>
               <textarea id="map-spot-comment" name="comment" class="spot-textarea" placeholder="Skriv kort om mengde, kvalitet, adkomst eller sesong."></textarea>
 
+              <label class="spot-label" for="map-spot-photos">Bilder</label>
+              <input id="map-spot-photos" name="photos" class="spot-input" type="file" accept="image/*" multiple />
+              <p class="spot-help">
+                Legg ved opptil 3 bilder av voksested, mengde, kvalitet, adkomst eller arten.
+              </p>
+
               <div class="spot-coordinates" id="map-spot-coordinates">Ingen kartposisjon valgt ennå.</div>
               <button class="spot-submit" type="submit">Lagre team-funn</button>
             </form>
           </section>
         </div>
+        <section class="legend-panel map-legend-panel">
+          <p class="field-label">Fargeforklaring</p>
+          <div class="legend-list">
+            <div class="legend-item">
+              <span class="legend-dot legend-dot-green"></span>
+              <span>Siste 3 år</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot legend-dot-yellow"></span>
+              <span>2000-2022</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot legend-dot-pink"></span>
+              <span>Før 2000</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot legend-dot-team"></span>
+              <span>Egne funn</span>
+            </div>
+          </div>
+        </section>
+        <section id="field-results" class="field-results" aria-live="polite"></section>
         <div class="map-footer">
           <span class="footer-chip">Trøndelag Sankeri AS</span>
           <span class="footer-text">Sankekart basert pa monday.com og Artsdatabanken</span>

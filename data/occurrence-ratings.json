@@ -26,5 +26,26 @@
     "comment": "Ingen kantarell",
     "reporter": "Jim",
     "createdAt": "2026-04-11T21:02:19Z"
+  },
+  {
+    "sourceId": "urn:uuid:242dbd04-6b04-4024-a4e1-b6d8b66c989e",
+    "rating": 2,
+    "comment": "Nesten ikke noe",
+    "reporter": "Jim",
+    "createdAt": "2026-04-12T13:23:38Z"
+  },
+  {
+    "sourceId": "biofokus/biofokus/sl20230607101243",
+    "rating": 2,
+    "comment": "Kun en busk, vanskelig å parkere",
+    "reporter": "Helle",
+    "createdAt": "2026-04-13T15:11:22Z"
+  },
+  {
+    "sourceId": "urn:uuid:dfea79ee-2238-4158-b52d-a9de7ab3b94d",
+    "rating": 2,
+    "comment": "Her var det ikke mye nei...",
+    "reporter": "Jim",
+    "createdAt": "2026-04-13T16:23:25Z"
   }
 ]

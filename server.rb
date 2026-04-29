@@ -1,25 +1,33 @@
 require "json"
 require "net/http"
 require "pathname"
+require "timeout"
 require "time"
 require "uri"
+require "cgi"
+require "date"
 require "webrick"
 
 port = Integer(ENV.fetch("PORT", "3000"))
 bind_address = ENV.fetch("BIND_ADDRESS", "127.0.0.1")
 public_dir = Pathname.new(File.join(__dir__, "public")).realpath
 products_path = Pathname.new(File.join(__dir__, "data", "products.json"))
+SUPPLEMENTAL_PRODUCTS_PATH = Pathname.new(File.join(__dir__, "data", "pensum-products-supplement.json"))
+MONDAY_PRODUCTS_CACHE_PATH = Pathname.new(File.join(__dir__, "data", "monday-products-cache.json"))
 team_spots_path = Pathname.new(File.join(__dir__, "data", "team-spots.json"))
 occurrence_ratings_path = Pathname.new(File.join(__dir__, "data", "occurrence-ratings.json"))
+spot_visits_path = Pathname.new(File.join(__dir__, "data", "spot-visits.json"))
 default_counties = ENV.fetch("DEFAULT_COUNTIES", "Trøndelag")
   .split(",")
   .map(&:strip)
   .reject(&:empty?)
-default_county_ids = ENV.fetch("DEFAULT_COUNTY_IDS", "50")
+default_county_ids = ENV.fetch("DEFAULT_COUNTY_IDS", "16,17")
   .split(",")
   .map(&:strip)
   .reject(&:empty?)
-
+OCCURRENCE_CACHE = {}
+OCCURRENCE_CACHE_TTL_SECONDS = Integer(ENV.fetch("OCCURRENCE_CACHE_TTL_SECONDS", "900"))
+ARTSDATABANKEN_TIMEOUT_SECONDS = Integer(ENV.fetch("ARTSDATABANKEN_TIMEOUT_SECONDS", "8"))
 fallback_occurrences = {
   "steinsopp" => [
     { lat: 59.9139, lng: 10.7522, place: "Oslo-området", note: "Eksempelfunn for prototype" },
@@ -40,7 +48,11 @@ mime_types = {
   ".html" => "text/html; charset=utf-8",
   ".css" => "text/css; charset=utf-8",
   ".js" => "application/javascript; charset=utf-8",
-  ".json" => "application/json; charset=utf-8"
+  ".json" => "application/json; charset=utf-8",
+  ".png" => "image/png",
+  ".jpg" => "image/jpeg",
+  ".jpeg" => "image/jpeg",
+  ".svg" => "image/svg+xml"
 }
 
 def load_env_file(path)
@@ -61,6 +73,14 @@ load_env_file(File.join(__dir__, ".env.local"))
 
 def load_products(products_path)
   JSON.parse(products_path.read, symbolize_names: true)
+end
+
+def load_optional_products(products_path)
+  return [] unless products_path.file?
+
+  JSON.parse(products_path.read, symbolize_names: true)
+rescue JSON::ParserError
+  []
 end
 
 def load_team_spots(team_spots_path)
@@ -84,9 +104,22 @@ rescue JSON::ParserError
   []
 end
 
+def load_spot_visits(path)
+  return [] unless path.file?
+
+  JSON.parse(path.read, symbolize_names: true)
+rescue JSON::ParserError
+  []
+end
+
 def save_occurrence_ratings(path, ratings)
   path.dirname.mkpath unless path.dirname.exist?
   path.write(JSON.pretty_generate(ratings))
+end
+
+def save_spot_visits(path, visits)
+  path.dirname.mkpath unless path.dirname.exist?
+  path.write(JSON.pretty_generate(visits))
 end
 
 def monday_configured?
@@ -106,17 +139,26 @@ def monday_column_ids
     ENV["MONDAY_PRODUCT_NAME_COLUMN_ID"],
     ENV["MONDAY_SCIENTIFIC_NAME_COLUMN_ID"],
     ENV["MONDAY_TAXON_ID_COLUMN_ID"],
-    ENV["MONDAY_CATEGORY_COLUMN_ID"]
+    ENV["MONDAY_CATEGORY_COLUMN_ID"],
+    ENV.fetch("MONDAY_SEASON_START_COLUMN_ID", "numbers86"),
+    ENV.fetch("MONDAY_SEASON_END_COLUMN_ID", "numbers67")
   ].compact.reject(&:empty?).uniq
 end
 
 def monday_graphql(query, variables = {})
+  timeout_seconds = Integer(ENV.fetch("MONDAY_TIMEOUT_SECONDS", "8"))
   uri = URI("https://api.monday.com/v2")
   request = Net::HTTP::Post.new(uri)
   monday_headers.each { |key, value| request[key] = value }
   request.body = JSON.generate({ query: query, variables: variables })
 
-  response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) do |http|
+  response = Net::HTTP.start(
+    uri.hostname,
+    uri.port,
+    use_ssl: true,
+    open_timeout: timeout_seconds,
+    read_timeout: timeout_seconds
+  ) do |http|
     http.request(request)
   end
 
@@ -125,6 +167,24 @@ def monday_graphql(query, variables = {})
 
   nil
 rescue JSON::ParserError, StandardError
+  nil
+end
+
+def load_cached_monday_products
+  return nil unless MONDAY_PRODUCTS_CACHE_PATH.file?
+
+  products = JSON.parse(MONDAY_PRODUCTS_CACHE_PATH.read, symbolize_names: true)
+  products.is_a?(Array) && !products.empty? ? products : nil
+rescue JSON::ParserError, StandardError
+  nil
+end
+
+def save_cached_monday_products(products)
+  return unless products.is_a?(Array) && !products.empty?
+
+  MONDAY_PRODUCTS_CACHE_PATH.dirname.mkpath unless MONDAY_PRODUCTS_CACHE_PATH.dirname.exist?
+  MONDAY_PRODUCTS_CACHE_PATH.write(JSON.pretty_generate(products))
+rescue StandardError
   nil
 end
 
@@ -232,10 +292,11 @@ def normalize_monday_item(item)
   scientific_name = extract_column_text(item, ENV["MONDAY_SCIENTIFIC_NAME_COLUMN_ID"])
   category = extract_column_text(item, ENV["MONDAY_CATEGORY_COLUMN_ID"]) || "Ukjent"
   taxon_id = extract_taxon_id(item)
+  season_start = extract_column_text(item, ENV.fetch("MONDAY_SEASON_START_COLUMN_ID", "numbers86"))
+  season_end = extract_column_text(item, ENV.fetch("MONDAY_SEASON_END_COLUMN_ID", "numbers67"))
 
   return nil if product_name.empty?
   return nil if taxon_id.nil?
-  return nil if scientific_name.to_s.empty?
 
   {
     id: "monday-#{item["id"]}",
@@ -243,6 +304,8 @@ def normalize_monday_item(item)
     productName: product_name,
     scientificName: scientific_name.to_s.empty? ? product_name : scientific_name,
     taxonId: taxon_id,
+    seasonStart: season_start.to_s,
+    seasonEnd: season_end.to_s,
     category: category,
     sourceLabel: "monday.com board",
     description: "Produkt hentet fra monday.com board #{ENV["MONDAY_BOARD_ID"]}.",
@@ -276,24 +339,67 @@ def fetch_monday_products
     result << normalized if normalized
   end
 
-  products
+  products = products
     .uniq { |product| [product[:productName].downcase, product[:scientificName].downcase, product[:taxonId].to_s] }
     .sort_by { |product| product[:productName].downcase }
+  save_cached_monday_products(products)
+  products
 end
 
 def chosen_products(products_path, source_preference)
+  supplemental_products = load_optional_products(SUPPLEMENTAL_PRODUCTS_PATH)
+
   if source_preference == "monday" && monday_configured?
+    cached_products = load_cached_monday_products
+    return [merge_products(cached_products, supplemental_products), "monday-cache"] if cached_products
+
     monday_products = fetch_monday_products
-    return [monday_products, "monday"] if monday_products && !monday_products.empty?
+    return [merge_products(monday_products, supplemental_products), "monday"] if monday_products && !monday_products.empty?
   end
 
-  [load_products(products_path), "local"]
+  [merge_products(load_products(products_path), supplemental_products), "local"]
+end
+
+def merge_products(primary_products, supplemental_products)
+  seen = {}
+  merged = []
+
+  [Array(primary_products), Array(supplemental_products)].each do |collection|
+    collection.each do |product|
+      next unless product.is_a?(Hash)
+
+      key = [
+        product[:taxonId].to_s,
+        product[:productName].to_s.downcase.strip,
+        product[:scientificName].to_s.downcase.strip
+      ].join("|")
+      next if seen[key]
+
+      seen[key] = true
+      merged << product
+    end
+  end
+
+  merged.sort_by { |product| product[:productName].to_s.downcase }
 end
 
 def response_json(response, payload, status: 200)
   response.status = status
   response["Content-Type"] = "application/json; charset=utf-8"
+  response["Cache-Control"] = "no-store"
   response.body = JSON.pretty_generate(payload)
+end
+
+def index_html_with_initial_products(html, products_path)
+  products, source = chosen_products(products_path, ENV.fetch("PRODUCT_SOURCE", "monday"))
+  config = JSON.generate({ initialProducts: products, initialProductSource: source })
+    .gsub("</", "<\\/")
+  html.sub(
+    '<script src="/app.js" type="module"></script>',
+    "<script>window.TrondelagSankekart = #{config};</script>\n    <script src=\"/app.js\" type=\"module\"></script>"
+  )
+rescue StandardError
+  html
 end
 
 def parse_float(value)
@@ -302,6 +408,18 @@ def parse_float(value)
   Float(value.to_s.tr(",", "."))
 rescue ArgumentError, TypeError
   nil
+end
+
+def safe_query_value(value)
+  text = value.to_s
+  text = text.force_encoding("UTF-8")
+  text = text.encode("UTF-8", invalid: :replace, undef: :replace, replace: "") unless text.valid_encoding?
+  CGI.unescape(text)
+end
+
+def query_csv(request, key, fallback = [])
+  source = request.query[key] ? safe_query_value(request.query[key]) : Array(fallback).join(",")
+  source.split(",").map(&:strip).reject(&:empty?)
 end
 
 def build_place_name(observation)
@@ -342,7 +460,11 @@ def normalize_occurrences(payload)
       note: observation["CollectedDate"] || observation["EventDate"] || observation["DatasetName"] || "Registrert artsfunn",
       sourceId: observation["Id"] || observation["id"],
       municipality: observation["Municipality"] || observation["municipality"],
-      county: observation["County"] || observation["county"]
+      county: observation["County"] || observation["county"],
+      datasetName: observation["DatasetName"] || observation["datasetName"] || "",
+      institution: observation["Institution"] || observation["InstitutionName"] || observation["institution"] || "",
+      basisOfRecord: observation["BasisOfRecord"] || observation["basisOfRecord"] || "",
+      collector: observation["Collector"] || observation["collector"] || ""
     }
   end
 end
@@ -365,13 +487,54 @@ def attach_occurrence_ratings(occurrences, path)
   end
 end
 
+def spot_visits_index(path)
+  load_spot_visits(path).group_by { |entry| [entry[:targetType].to_s, entry[:targetId].to_s].join(":") }
+end
+
+def recent_visit?(visited_at)
+  return false if visited_at.to_s.strip.empty?
+
+  Time.parse(visited_at.to_s) >= (Time.now.utc - (10 * 24 * 60 * 60))
+rescue ArgumentError
+  false
+end
+
+def attach_recent_visits(entries, path, target_type:, id_key:)
+  visits = spot_visits_index(path)
+
+  entries.map do |entry|
+    visit = visits[[target_type.to_s, entry[id_key].to_s].join(":")]&.last
+    entry.merge(
+      visitedAt: visit ? visit[:visitedAt].to_s : "",
+      visitedBy: visit ? visit[:reporter].to_s : "",
+      recentVisit: visit ? recent_visit?(visit[:visitedAt]) : false
+    )
+  end
+end
+
 def filter_occurrences_by_county(occurrences, county_names)
   names = Array(county_names).map(&:to_s).map(&:strip).reject(&:empty?)
   return occurrences if names.empty?
 
   occurrences.select do |occurrence|
-    names.any? { |name| occurrence[:county].to_s.casecmp(name).zero? }
+    names.any? { |name| occurrence[:county].to_s.casecmp(name).to_i.zero? }
   end
+end
+
+def filter_occurrences_by_municipality(occurrences, municipality_names)
+  names = Array(municipality_names).map(&:to_s).map(&:strip).reject(&:empty?)
+  return occurrences if names.empty?
+
+  occurrences.select do |occurrence|
+    names.any? { |name| occurrence[:municipality].to_s.casecmp(name).to_i.zero? }
+  end
+end
+
+def filter_occurrences_by_location(occurrences, county_names, municipality_names)
+  filter_occurrences_by_municipality(
+    filter_occurrences_by_county(occurrences, county_names),
+    municipality_names
+  )
 end
 
 def artskart_candidates(taxon_id, scientific_name)
@@ -401,7 +564,15 @@ end
 def fetch_json(url_string, params)
   uri = URI(url_string)
   uri.query = URI.encode_www_form(params)
-  response = Net::HTTP.get_response(uri)
+  response = Timeout.timeout(ARTSDATABANKEN_TIMEOUT_SECONDS + 1) do
+    Net::HTTP.start(
+      uri.hostname,
+      uri.port,
+      use_ssl: uri.scheme == "https",
+      open_timeout: ARTSDATABANKEN_TIMEOUT_SECONDS,
+      read_timeout: ARTSDATABANKEN_TIMEOUT_SECONDS
+    ) { |http| http.get(uri.request_uri) }
+  end
   return nil unless response.is_a?(Net::HTTPSuccess)
 
   JSON.parse(response.body)
@@ -409,79 +580,174 @@ rescue JSON::ParserError, StandardError
   nil
 end
 
-def fetch_all_observations_by_taxon(taxon_id, county_names: [], county_ids: [], max_total: nil)
-  observations = []
-  page_index = 0
-  page_size = 1000
-
-  loop do
-    payload = fetch_json("https://artskart.artsdatabanken.no/publicapi/api/observations/list", {
-      "pageIndex" => page_index,
-      "pageSize" => page_size,
-      "crs" => "EPSG:4326",
-      "filter.taxons" => taxon_id,
-      "filter.includeChildTaxons" => false,
-      "filter.countys" => county_ids
-    })
-    break unless payload
-
-    batch = filter_occurrences_by_county(normalize_occurrences(payload), county_names)
-    observations.concat(batch)
-
-    total_count = payload["TotalCount"].to_i
-    page_index += 1
-
-    break if batch.empty?
-    break if observations.length >= total_count
-    break if max_total && observations.length >= max_total
+def fetch_text(url_string, params)
+  uri = URI(url_string)
+  uri.query = URI.encode_www_form(params)
+  response = Timeout.timeout(ARTSDATABANKEN_TIMEOUT_SECONDS + 1) do
+    Net::HTTP.start(
+      uri.hostname,
+      uri.port,
+      use_ssl: uri.scheme == "https",
+      open_timeout: ARTSDATABANKEN_TIMEOUT_SECONDS,
+      read_timeout: ARTSDATABANKEN_TIMEOUT_SECONDS
+    ) { |http| http.get(uri.request_uri) }
   end
+  return nil unless response.is_a?(Net::HTTPSuccess)
 
-  max_total ? observations.first(max_total) : observations
+  response.body
+rescue StandardError
+  nil
 end
 
-def fetch_live_occurrences(product, county_names: [], county_ids: [], ratings_path:)
-  artskart_candidates(product[:taxonId], product[:scientificName]).each do |url, params|
-    payload = fetch_json(url, params)
-    next unless payload
+def fetch_taxon_info(taxon_id, scientific_name, product_name = nil)
+  [scientific_name, product_name, taxon_id].map(&:to_s).map(&:strip).reject(&:empty?).uniq.each do |query|
+    payload = fetch_json("https://artskart.artsdatabanken.no/publicapi/api/taxon", {
+      "term" => query,
+      "take" => 8
+    })
+    next unless payload.is_a?(Array) && !payload.empty?
 
-    if url.include?("/api/taxon")
-      taxa =
-        if payload.is_a?(Array)
-          payload
-        elsif payload.is_a?(Hash)
-          payload["Items"] || payload["items"] || payload["Results"] || payload["results"] || []
-        else
-          []
-        end
+    match = payload.find { |candidate| candidate["TaxonId"].to_s == taxon_id.to_s }
+    return match if match
+  end
 
-      match = taxa.find do |candidate|
-        candidate["TaxonId"].to_s == product[:taxonId].to_s ||
-          candidate["ValidScientificName"].to_s.casecmp(product[:scientificName].to_s).zero?
+  {}
+end
+
+def fetch_species_image(search_term)
+  html = fetch_text("https://artsdatabanken.no/bilder", {
+    "search_api_fulltext" => search_term
+  })
+  return nil unless html
+
+  image_url = html[/<img[^>]+src="([^"]+)"/i, 1]
+  return nil unless image_url
+
+  image_url = image_url.gsub("&amp;", "&")
+  image_url = "https://artsdatabanken.no#{image_url}" if image_url.start_with?("/")
+  download_url = html[/<a href="([^"]+)"[^>]+btn-download/i, 1].to_s.gsub("&amp;", "&")
+
+  {
+    url: image_url,
+    downloadUrl: download_url,
+    alt: search_term,
+    credit: "Bilde fra Artsdatabanken. Sjekk lisens før videre bruk.",
+    license: "Se lisens hos Artsdatabanken"
+  }
+end
+
+def build_species_info(taxon_id:, scientific_name:, product_name:)
+  taxon = fetch_taxon_info(taxon_id, scientific_name, product_name)
+  tags = Array(taxon["TaxonTags"]).map do |tag|
+    {
+      label: [tag["TagGroup"], tag["Tag"]].compact.join(" "),
+      tag: tag["Tag"],
+      url: tag["Url"]
+    }
+  end
+  popular_name = taxon["PrefferedPopularname"] || product_name
+  group = taxon["TaxonGroup"].to_s
+  family = taxon["Family"].to_s
+  description_parts = [
+    group.empty? ? nil : "#{popular_name} er registrert hos Artsdatabanken som #{group.downcase}.",
+    family.empty? ? nil : "Familie: #{family}.",
+    taxon.key?("ExistsInCountry") && taxon["ExistsInCountry"] ? "Arten er oppført som finnes i Norge." : nil,
+    taxon.key?("ExistsInCountry") && !taxon["ExistsInCountry"] ? "Artsdatabanken markerer at denne taksonen ikke er registrert som etablert i Norge." : nil
+  ].compact
+
+  {
+    taxonId: taxon["TaxonId"] || taxon_id,
+    popularName: popular_name,
+    scientificName: taxon["ValidScientificName"] || scientific_name,
+    taxonGroup: group,
+    family: family,
+    status: taxon["Status"].to_s,
+    statusTags: tags,
+    description: description_parts.empty? ? "Artsinformasjon hentes fra Artsdatabanken når den er tilgjengelig." : description_parts.join(" "),
+    artsdatabankenUrl: "https://artsdatabanken.no/taxon/#{taxon_id}",
+    image: fetch_species_image(scientific_name.to_s.empty? ? product_name : scientific_name)
+  }
+end
+
+def fetch_all_observations_by_taxon(taxon_id, county_names: [], county_ids: [], municipality_names: [], max_total: nil)
+  cache_key = [
+    taxon_id.to_s,
+    county_names.join("|"),
+    county_ids.join("|"),
+    municipality_names.join("|"),
+    max_total.to_s
+  ].join("::")
+  cached = OCCURRENCE_CACHE[cache_key]
+  return cached[:data] if cached && Time.now - cached[:stored_at] < OCCURRENCE_CACHE_TTL_SECONDS
+
+  page_size = Integer(ENV.fetch("ARTSDATABANKEN_PAGE_SIZE", "250"))
+  max_pages = Integer(ENV.fetch("ARTSDATABANKEN_MAX_PAGES", "40"))
+  practical_limit = max_total || Integer(ENV.fetch("ARTSDATABANKEN_MAX_OCCURRENCES", "10000"))
+  target_county_ids = county_ids.empty? ? [nil] : county_ids
+
+  fetch_pages = lambda do |include_children|
+    observations = []
+    had_response = false
+    total_available = 0
+
+    target_county_ids.each do |county_id|
+      page_index = 0
+
+      loop do
+        query = {
+          "pageIndex" => page_index,
+          "pageSize" => page_size,
+          "crs" => "EPSG:4326",
+          "filter.taxons" => taxon_id,
+          "filter.includeChildTaxons" => include_children
+        }
+        query["filter.countys"] = county_id if county_id
+
+        payload = fetch_json("https://artskart.artsdatabanken.no/publicapi/api/observations/list", query)
+        break unless payload
+        had_response = true
+
+        total_count = payload["TotalCount"].to_i
+        total_available += total_count
+        normalized = normalize_occurrences(payload)
+        batch = filter_occurrences_by_location(normalized, county_names, municipality_names)
+        observations.concat(batch)
+
+        page_index += 1
+
+        break if normalized.length < page_size
+        break if page_index * page_size >= total_count
+        break if observations.length >= practical_limit
+        break if page_index >= max_pages
       end
 
-      next unless match
-
-      normalized = fetch_all_observations_by_taxon(
-        match["TaxonId"],
-        county_names: county_names,
-        county_ids: county_ids
-      )
-      return [attach_occurrence_ratings(normalized, ratings_path), "Artsdatabanken live"] unless normalized.empty?
-      next
+      break if observations.length >= practical_limit
     end
 
-    normalized =
-      if params["filter.taxons"]
-        fetch_all_observations_by_taxon(
-          params["filter.taxons"],
-          county_names: county_names,
-          county_ids: county_ids
-        )
-      else
-        filter_occurrences_by_county(normalize_occurrences(payload), county_names)
-      end
-    return [attach_occurrence_ratings(normalized, ratings_path), "Artsdatabanken live"] unless normalized.empty?
+    [observations.first(practical_limit), had_response, total_available]
   end
+
+  result, had_response, total_available = fetch_pages.call(false)
+  if had_response && total_available < 10
+    child_result, child_had_response, child_total_available = fetch_pages.call(true)
+    if child_had_response && child_total_available > total_available
+      result = child_result
+      total_available = child_total_available
+    end
+  end
+
+  OCCURRENCE_CACHE[cache_key] = { data: result, stored_at: Time.now } if had_response
+  result
+end
+
+def fetch_live_occurrences(product, county_names: [], county_ids: [], municipality_names: [], ratings_path:)
+  normalized = fetch_all_observations_by_taxon(
+    product[:taxonId],
+    county_names: county_names,
+    county_ids: county_ids,
+    municipality_names: municipality_names
+  )
+  return [attach_occurrence_ratings(normalized, ratings_path), "Artsdatabanken live"] unless normalized.empty?
 
   [[], nil]
 end
@@ -498,8 +764,28 @@ def normalize_team_spot(spot)
     rating: spot[:rating].to_i,
     comment: spot[:comment].to_s,
     reporter: spot[:reporter].to_s,
+    photos: Array(spot[:photos]),
     createdAt: spot[:createdAt].to_s
   }
+end
+
+def sanitize_spot_photos(photos)
+  return [] unless photos.is_a?(Array)
+
+  photos.first(3).each_with_object([]) do |photo, result|
+    next unless photo.is_a?(Hash)
+
+    data_url = photo[:dataUrl].to_s
+    next unless data_url.match?(%r{\Adata:image/(jpeg|jpg|png|webp|gif);base64,}i)
+    next if data_url.length > 1_500_000
+
+    result << {
+      name: File.basename(photo[:name].to_s.empty? ? "feltbilde" : photo[:name].to_s),
+      type: photo[:type].to_s,
+      size: photo[:size].to_i,
+      dataUrl: data_url
+    }
+  end
 end
 
 def team_spots_for_product(team_spots_path, product_id)
@@ -539,6 +825,7 @@ def build_team_spot(payload, product)
       rating: rating,
       comment: comment,
       reporter: reporter,
+      photos: sanitize_spot_photos(payload[:photos]),
       createdAt: Time.now.utc.iso8601
     },
     nil
@@ -561,22 +848,21 @@ server.mount_proc "/api/products" do |_request, response|
   })
 end
 
+server.mount_proc "/api/species-info" do |request, response|
+  response_json(response, build_species_info(
+    taxon_id: request.query["taxonId"].to_s,
+    scientific_name: request.query["scientificName"].to_s,
+    product_name: request.query["productName"].to_s
+  ))
+end
+
 server.mount_proc "/api/occurrences" do |request, response|
   products, = chosen_products(products_path, ENV.fetch("PRODUCT_SOURCE", "monday"))
   product_id = request.query["productId"]
   use_live = request.query["live"] == "1" || ENV["ARTSDATABANKEN_LIVE"] == "1"
-  county_names =
-    if request.query["counties"]
-      request.query["counties"].split(",").map(&:strip).reject(&:empty?)
-    else
-      default_counties
-    end
-  county_ids =
-    if request.query["countyIds"]
-      request.query["countyIds"].split(",").map(&:strip).reject(&:empty?)
-    else
-      default_county_ids
-    end
+  county_names = query_csv(request, "counties", default_counties)
+  county_ids = query_csv(request, "countyIds", default_county_ids)
+  municipality_names = query_csv(request, "municipalities")
   product = products.find { |entry| entry[:id] == product_id }
 
   unless product
@@ -592,13 +878,15 @@ server.mount_proc "/api/occurrences" do |request, response|
       product,
       county_names: county_names,
       county_ids: county_ids,
+      municipality_names: municipality_names,
       ratings_path: occurrence_ratings_path
     )
   end
 
   fallback = fallback_occurrences.fetch(product_id, [])
   occurrences = live_occurrences.empty? ? fallback : live_occurrences
-  custom_spots = team_spots_for_product(team_spots_path, product_id)
+  occurrences = attach_recent_visits(occurrences, spot_visits_path, target_type: "occurrence", id_key: :sourceId)
+  custom_spots = attach_recent_visits(team_spots_for_product(team_spots_path, product_id), spot_visits_path, target_type: "team", id_key: :id)
 
   response_json(
     response,
@@ -609,9 +897,10 @@ server.mount_proc "/api/occurrences" do |request, response|
       sourceLabel: source_label || "Prøvedata",
       countyFilter: county_names,
       countyIdFilter: county_ids,
+      municipalityFilter: municipality_names,
       occurrences: occurrences,
       customSpots: custom_spots,
-      integrationNote: "Artsdatabanken-kallet er implementert med beste gjetning mot dokumenterte endepunkter og kan kreve en liten parameterjustering når det kjøres live."
+      integrationNote: "Artsdatabanken-kallet henter sidevis fra Artskart og kan ta litt tid for artsgrupper med mange underliggende takson."
     }
   )
 end
@@ -706,6 +995,46 @@ server.mount_proc "/api/occurrence-ratings" do |request, response|
   response_json(response, { rating: entry }, status: 201)
 end
 
+server.mount_proc "/api/spot-visits" do |request, response|
+  unless request.request_method == "POST"
+    response_json(response, { error: "Metoden støttes ikke" }, status: 405)
+    next
+  end
+
+  payload = parse_request_json(request)
+  if payload.nil?
+    response_json(response, { error: "Ugyldig JSON" }, status: 400)
+    next
+  end
+
+  target_type = payload[:targetType].to_s.strip
+  target_id = payload[:targetId].to_s.strip
+  reporter = payload[:reporter].to_s.strip
+
+  unless %w[occurrence team].include?(target_type)
+    response_json(response, { error: "Ugyldig måltype" }, status: 422)
+    next
+  end
+
+  if target_id.empty?
+    response_json(response, { error: "Mål-ID mangler" }, status: 422)
+    next
+  end
+
+  visits = load_spot_visits(spot_visits_path)
+  visits.reject! { |entry| entry[:targetType].to_s == target_type && entry[:targetId].to_s == target_id }
+  entry = {
+    targetType: target_type,
+    targetId: target_id,
+    reporter: reporter,
+    visitedAt: Time.now.utc.iso8601
+  }
+  visits << entry
+  save_spot_visits(spot_visits_path, visits)
+
+  response_json(response, { visit: entry.merge(recentVisit: true) }, status: 201)
+end
+
 server.mount_proc "/" do |request, response|
   relative = request.path == "/" ? "/index.html" : request.path
   candidate = public_dir.join(relative.delete_prefix("/")).cleanpath
@@ -719,7 +1048,8 @@ server.mount_proc "/" do |request, response|
 
   response.status = 200
   response["Content-Type"] = mime_types.fetch(candidate.extname.downcase, "application/octet-stream")
-  response.body = candidate.binread
+  response["Cache-Control"] = "no-store"
+  response.body = candidate.basename.to_s == "index.html" ? index_html_with_initial_products(candidate.read, products_path) : candidate.binread
 end
 
 trap("INT") { server.shutdown }

@@ -1,0 +1,20 @@
+[
+  {
+    "targetType": "occurrence",
+    "targetId": "test-visit-1",
+    "reporter": "Jim",
+    "visitedAt": "2026-04-28T23:28:36Z"
+  },
+  {
+    "targetType": "occurrence",
+    "targetId": "urn:catalog:o:nxs:621/2",
+    "reporter": "Jim",
+    "visitedAt": "2026-04-28T23:30:00Z"
+  },
+  {
+    "targetType": "team",
+    "targetId": "spot-1777416102-6922",
+    "reporter": "",
+    "visitedAt": "2026-04-29T08:59:09Z"
+  }
+]
